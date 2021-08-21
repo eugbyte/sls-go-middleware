@@ -29,6 +29,9 @@ type MiddlewareImpl interface {
 	ModifyResponse(response Response, err error) (Response, error)
 
 	// Middlware functions to process errors returned either by the middlewares or the Handler function.
+	// When there is an error, the regular control flow is stopped.
+	// The execution is moved back to all the middlewares that implemented a special phase called onError, following the order they have been attached.
+	// https://github.com/middyjs/middy#handling-errors
 
 	// THE LAST ERROR HANDLING MIDDLEWARE SHOULD REMOVE THE ERROR, AND INSTEAD INCLUDE THE ERROR IN THE RESPONSE BODY, WITH STATUS 500, INDICATING UNHANDLED ERROR
 	// The lambda handler can return 2 values. APIGatewayProxyResponse{} and error
@@ -78,14 +81,14 @@ func (middy *Middy) WrapHandler(handler Handler) Handler {
 			if err != nil {
 				// since still in pre-processing request stage, provide an empty Response as initial value
 				fmt.Printf("modify request middleware - error detected: %s \n", err.Error())
-				return middy.handleErrorOnRequestPhase(Response{}, err)
+				return middy.handleError(Response{}, err)
 			}
 		}
 
 		// Invoke main handler
 		response, err := handler(request)
 		if err != nil {
-			return middy.handleErrorOnResponsePhase(response, err)
+			return middy.handleError(response, err)
 		}
 
 		// Logic to process response here...
@@ -93,7 +96,7 @@ func (middy *Middy) WrapHandler(handler Handler) Handler {
 			response, err = functn(response, err)
 			if err != nil {
 				fmt.Printf("modify response middleware - error detected: %s \n", err.Error())
-				return middy.handleErrorOnResponsePhase(response, err)
+				return middy.handleError(response, err)
 			}
 		}
 
@@ -106,24 +109,10 @@ func (middy *Middy) AddMiddleware(middleware ...MiddlewareImpl) {
 }
 
 // Handle the error and create a proper response or to delegate the error to the next middleware.
-func (middy *Middy) handleErrorOnRequestPhase(response Response, err error) (Response, error) {
+func (middy *Middy) handleError(response Response, err error) (Response, error) {
 	var onErrorFuncs []OnErrorFunc
 
 	for _, mw := range middy.Middlewares {
-		onErrorFuncs = append(onErrorFuncs, mw.OnError)
-	}
-
-	for _, functn := range onErrorFuncs {
-		response, err = functn(response, err)
-	}
-	return response, err
-}
-
-func (middy *Middy) handleErrorOnResponsePhase(response Response, err error) (Response, error) {
-	var onErrorFuncs []OnErrorFunc
-
-	for i := len(middy.Middlewares) - 1; i >= 0; i-- {
-		mw := middy.Middlewares[i]
 		onErrorFuncs = append(onErrorFuncs, mw.OnError)
 	}
 
