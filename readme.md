@@ -5,8 +5,9 @@ Note that this is not the official release of middy
 # How to use
 ```
 import (
-	middy "github.com/eugbyte/sls-go-mod"
-	"github.com/aws/aws-lambda-go/events"
+    "github.com/aws/aws-lambda-go/lambda"
+    middy "github.com/eugbyte/sls-go-middleware"
+
 )
 
 middify := middy.Middy{}
@@ -18,12 +19,6 @@ middify.AddMiddleware(
 wrappedHandler := middify.WrapHandler(Handler)
 lambda.Start(wrappedHandler)
 ```
-
-# Understanding how it works
-* [middy wraps the handler in the middlewares specified](https://github.com/middyjs/middy#how-it-works)
-
-* [Execution order](https://github.com/middyjs/middy#execution-order)
-
 # How to create your own middleware
 All middleware must implement the `MiddlewareImpl` interface
 ```
@@ -39,6 +34,23 @@ type MiddlewareImpl interface {
 	OnError(response Response, err error) (Response, error)
 }
 ```
+
+# Understanding how it works
+* [middy wraps the handler in the middlewares specified](https://github.com/middyjs/middy#how-it-works)
+
+* [Execution order](https://github.com/middyjs/middy#execution-order)
+```
+## The ModifyRequest functions will be executed in the order from middleware1, middleware2, middleware3
+## The ModifyResponse functions will be executed in the order from middleware3, middleware2, middleware1
+## The OnError functions will be executed in the order from middleware1, middleware2, middleware3
+
+middify.AddMiddleware(
+    middleware1,
+    middleware2,
+    middleware3,
+)
+```
+
 
 # Error handling
 ## Understanding the pecularities of the returning an error in aws lambda
@@ -67,7 +79,7 @@ wrappedHandler := middify.WrapHandler(Handler)
 ```
 
 # Testing the library
-// Install make (win or linux)
+// Install make (win | linux)
 
 `choco install make` | `apt-get install make`
 

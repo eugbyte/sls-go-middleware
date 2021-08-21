@@ -78,14 +78,14 @@ func (middy *Middy) WrapHandler(handler Handler) Handler {
 			if err != nil {
 				// since still in pre-processing request stage, provide an empty Response as initial value
 				fmt.Printf("modify request middleware - error detected: %s \n", err.Error())
-				return middy.handleError(Response{}, err)
+				return middy.handleErrorOnRequestPhase(Response{}, err)
 			}
 		}
 
 		// Invoke main handler
 		response, err := handler(request)
 		if err != nil {
-			return middy.handleError(response, err)
+			return middy.handleErrorOnResponsePhase(response, err)
 		}
 
 		// Logic to process response here...
@@ -93,7 +93,7 @@ func (middy *Middy) WrapHandler(handler Handler) Handler {
 			response, err = functn(response, err)
 			if err != nil {
 				fmt.Printf("modify response middleware - error detected: %s \n", err.Error())
-				return middy.handleError(response, err)
+				return middy.handleErrorOnResponsePhase(response, err)
 			}
 		}
 
@@ -106,10 +106,24 @@ func (middy *Middy) AddMiddleware(middleware ...MiddlewareImpl) {
 }
 
 // Handle the error and create a proper response or to delegate the error to the next middleware.
-func (middy *Middy) handleError(response Response, err error) (Response, error) {
+func (middy *Middy) handleErrorOnRequestPhase(response Response, err error) (Response, error) {
 	var onErrorFuncs []OnErrorFunc
 
 	for _, mw := range middy.Middlewares {
+		onErrorFuncs = append(onErrorFuncs, mw.OnError)
+	}
+
+	for _, functn := range onErrorFuncs {
+		response, err = functn(response, err)
+	}
+	return response, err
+}
+
+func (middy *Middy) handleErrorOnResponsePhase(response Response, err error) (Response, error) {
+	var onErrorFuncs []OnErrorFunc
+
+	for i := len(middy.Middlewares) - 1; i >= 0; i-- {
+		mw := middy.Middlewares[i]
 		onErrorFuncs = append(onErrorFuncs, mw.OnError)
 	}
 
