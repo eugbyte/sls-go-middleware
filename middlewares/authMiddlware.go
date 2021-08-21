@@ -16,7 +16,7 @@ var errorMessage = "Unauthenticated, header Key value does not match"
 // 	   KeyMap: map[string]string{
 // 	     "Key": "123",
 // }})
-// wrappedHandler := middify.WrapHandler(MockHandler)
+// wrappedHandler := middify.WrapHandler(Handler)
 // curl -H "Key: 123" ...
 type AuthMiddleWare struct {
 	request Request
