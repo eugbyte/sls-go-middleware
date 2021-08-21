@@ -65,3 +65,16 @@ middify.AddMiddleware(
 
 wrappedHandler := middify.WrapHandler(Handler)
 ```
+
+# Testing the library
+// Install make (win or linux)
+
+`choco install make` | `apt-get install make`
+
+// Install gotest
+
+`make test-install-gotest`
+
+// Run the tests
+
+`make test`

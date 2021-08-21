@@ -3,13 +3,9 @@
 test-install-gotest:
 	go get -u github.com/rakyll/gotest
 
-
-test-middlewares:
+test:
 	gotest -v || go clean -testcache
 	go clean -testcache
-
-test:
-	make test-middlewares
 
 
 #----LINT----
